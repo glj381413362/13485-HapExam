@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hbi.core.om.mapper.InvInventoryItemsMapper">
+    <resultMap id="BaseResultMap" type="hbi.core.om.dto.InvInventoryItems">
+        <result column="INVENTORY_ITEM_ID" property="inventoryItemId" jdbcType="DECIMAL"/>
+        <result column="ITEM_CODE" property="itemCode" jdbcType="VARCHAR"/>
+        <result column="ITEM_UOM" property="itemUom" jdbcType="VARCHAR"/>
+        <result column="ITEM_DESCRIPTION" property="itemDescription" jdbcType="VARCHAR"/>
+        <result column="ORDER_FLAG" property="orderFlag" jdbcType="VARCHAR"/>
+        <result column="START_ACTIVE_DATE" property="startActiveDate" jdbcType="DATE"/>
+        <result column="END_ACTIVE_DATE" property="endActiveDate" jdbcType="DATE"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="CREATION_DATE" property="creationDate" jdbcType="DATE"/>
+        <result column="CREATED_BY" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="LAST_UPDATED_BY" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="LAST_UPDATE_DATE" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="LAST_UPDATE_LOGIN" property="lastUpdateLogin" jdbcType="DECIMAL"/>
+    </resultMap>
+
+
+    <select id="queryAllByIds" resultMap="BaseResultMap" parameterType="arraylist">
+        SELECT * from hap_inv_inventory_items
+        <choose>
+            <when test="list!=null and list.size>0">
+                where INVENTORY_ITEM_ID in
+                <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </when>
+            <otherwise>
+                where 1=2
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

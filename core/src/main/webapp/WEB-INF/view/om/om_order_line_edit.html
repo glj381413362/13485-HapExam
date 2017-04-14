@@ -1,0 +1,1200 @@
+<#include "../include/header.html" />
+<script src="${base.contextPath}/common/code?orderStatusData=HAP_OM_ORDER_STATUS" type="text/javascript"></script>
+
+<script src="${base.contextPath}/common/profile?orderSubmitCtl=HAP_OM_ORDER_SUBMIT_CTL" type="text/javascript"></script>
+
+<script src="${base.contextPath}/common/profile?orderApproveCtl=HAP_OM_ORDER_APPROVE_CTL"
+        type="text/javascript"></script>
+<link rel="stylesheet" href="${base.contextPath}/lib/font/systfont.css">
+<script src="${base.contextPath}/lib/kendoui/js/jszip.min.js"></script>
+
+<style>
+
+
+    /*
+        Use the DejaVu Sans font for display and embedding in the PDF file.
+        The standard PDF fonts have no support for Unicode characters.
+    */
+    .k-pdf-export {
+        font-family: 'systFont', "DejaVu Sans", "Arial", sans-serif;
+    }
+
+    .k-pdf-export tbody tr:first-child {
+        border-top: 1px rgba(80, 80, 80, 0.5) solid;
+    }
+
+    .k-pdf-export:not(:first-child) .k-grid:first-child {
+        margin-top: -2.5cm;
+    }
+
+    /* Page Template for the exported PDF */
+    .page-template {
+        /*font-family: 'systFont',"DejaVu Sans", "Arial", sans-serif;*/
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+    }
+
+    .page-template .header-message {
+        position: absolute;
+        top: 40px;
+        left: 30px;
+        right: 30px;
+        color: black;
+    }
+
+    .header-message .header-title {
+        color: red;
+        padding-bottom: 10px;
+    }
+
+    .header-message .main-title {
+        color: #08e3ff;
+        position: absolute;
+        top: 3.6cm;
+        left: 0px;
+    }
+
+    .page-template .header {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        right: 30px;
+        border-bottom: 1px solid #888;
+        color: #888;
+    }
+
+    .page-template .footer {
+        position: absolute;
+        bottom: 10px;
+        left: 30px;
+        right: 30px;
+        border-top: 1px solid #888;
+        text-align: center;
+        color: #888;
+    }
+
+    .page-template .watermark {
+        font-weight: bold;
+        font-size: 400%;
+        text-align: center;
+        margin-top: 30%;
+        color: #aaaaaa;
+        opacity: 0.1;
+        transform: rotate(-35deg) scale(1.7, 1.5);
+    }
+
+</style>
+
+
+<!--<script src="https://kendo.cdn.telerik.com/2017.1.223/js/pako_deflate.min.js"></script>-->
+
+<script type="x/kendo-template" id="page-template">
+    <div class="page-template">
+        <div class="header">
+            <div style="float: right">Page \#: pageNum \# of \#: totalPages \#</div>
+            PDF <@spring.message "om.print"/> ^-^
+        </div>
+
+        \#if(pageNum == 1 ){\#
+        <div class="header-message">
+            <h1 class="header-title">PDF <@spring.message "om.print"/></h1>
+            <div class="row" style="margin-bottom: 10px;">
+                <div class="col-sm-4">
+                    <div class="row">
+                        <label class="col-sm-5"><@spring.message "om.order_Number"/>:</label>
+                        <div class="col-sm-7">
+                            <span style="width: 100%" class="k-textbox">#= orderNumber #</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="row">
+                        <label class="col-sm-5"><@spring.message "om.company_name"/>:</label>
+                        <div class="col-sm-7">
+                            <span style="width: 100%" class="k-textbox">#= companyName #</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="row">
+                        <label class="col-sm-5"><@spring.message "om.customer_Name"/>:</label>
+                        <div class="col-sm-7">
+                            <span style="width: 100%" class="k-textbox">#= customerName #</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="row">
+                        <label class="col-sm-5"><@spring.message "om.order_Date"/>:</label>
+                        <div class="col-sm-7">
+                            <span style="width: 100%" class="k-textbox">#=  orderDate ? kendo.toString(orderDate, 'yyyy-MM-dd HH:mm:ss') : '' #</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="row">
+                        <label class="col-sm-5"><@spring.message "om.order_Total_Price"/>:</label>
+                        <div class="col-sm-7">
+                            <span style="width: 100%" class="k-textbox">#=  kendo.toString(totalPrice, 'n2') #</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="row">
+                        <label class="col-sm-5"><@spring.message "om.order_status"/>:</label>
+                        <div class="col-sm-7">
+                            <span style="width: 100%" class="k-textbox"> #=
+                                orderStatusData.find(function (item) {
+                                    return item.value === orderStatus;
+                                }).meaning || orderStatus #
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h3 class="main-title"><@spring.message "om.main"/></h3>
+        </div>
+        \# } \#
+        <div class="watermark">汉得信息</div>
+        <div class="footer">
+            Page \#: pageNum \# of \#: totalPages \#
+        </div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    var viewModel = kendo.observable({
+        model: {},
+        headerCanEdit: false,
+        orderStatusData: orderStatusData,
+        createFunction: function (isFromOther) {
+            if (!viewModel.model.headerId) {
+                kendo.ui.showWarningDialog({
+                    message: '请先保存订单头信息，再保存订单详细信息!'
+                });
+
+            } else {
+                if (isFromOther) {
+                    var isNotValidate = $('#otherGrid').data('kendoGrid').dataSource.data().some(function (item) {
+                        return !item.inventoryItemId;
+                    });
+                    if (isNotValidate) {
+                        kendo.ui.showWarningDialog({
+                            message: '订单头信息未验证通过，前先查看订单头信息!'
+                        });
+                        tabstrip.activateTab($("#inboundtab"));
+                        return;
+                    }
+
+                }
+                $('#Grid').data('kendoGrid').addRow();
+                if (isFromOther) {
+                    $('#otherGrid').data('kendoGrid').refresh();
+                }
+            }
+        },
+
+
+        saveFunction: function (isFromOther) {
+
+
+            if (isFromOther) {
+                var isNotValidate = $('#otherGrid').data('kendoGrid').dataSource.data().some(function (item) {
+                    return !item.inventoryItemId;
+                });
+                if (isNotValidate) {
+                    kendo.ui.showWarningDialog({
+                        message: '主要订单详细信息未验证通过，前先查看主要信息!'
+                    });
+                    tabstrip.activateTab($("#inboundtab"));
+                    return false;
+                }
+
+            }
+
+            $('#Grid').data('kendoGrid').saveChanges();
+            return true;
+        },
+        saveOrderHeader: function () {
+            if (!this.saveFunction()) {
+                return false;
+            }
+            var saveData = this.model.toJSON();
+            saveData.enabledFlag = saveData.enabledFlag ? 'Y' : 'N';
+
+            //确定是添加还是更新
+            if (saveData.headerId) {
+                saveData.__status = "update";
+            } else {
+                saveData.__status = "add";
+            }
+            var validator = $("#editQuery").data("kendoValidator");
+            if (validator.validate()) {
+
+                $.ajax({
+                    type: 'POST',
+                    url: '/hap/om/order/headers/submit',
+                    dataType: "json",
+                    contentType: "application/json",
+                    data: kendo.stringify([saveData]),
+                    success: function (data) {
+                        if (data.success == false) {
+                            kendo.ui.showErrorDialog({
+                                message: data.message
+                            });
+                        }
+                        else {
+                            kendo.ui.showInfoDialog({
+                                message: (data.message || '') + '  保存成功!'
+                            }).done(function () {
+                                var returnData = data.rows[0];
+                                for (var k in returnData) {
+                                    if (returnData[k] === null || returnData[k] === undefined)
+                                        delete returnData[k]
+                                }
+                                viewModel.set('model', returnData);
+                                isedit = true;
+                                initPrivilege();
+                            });
+                        }
+                    }
+                });
+            }
+
+
+        },
+        queryResource: function (e) {
+        },
+        changeOrderStates: function (state) {
+            if (!viewModel.model.headerId) {
+                kendo.ui.showWarningDialog({
+                    message: '请先保存订单主体信息!'
+                });
+                return;
+            }
+            viewModel.model.set('orderStatus', state);
+            initPrivilege();
+            this.saveOrderHeader();
+        },
+        submitFunction: function () {
+            var validator = $("#editQuery").data("kendoValidator");
+            if (validator.validate()) {
+                this.changeOrderStates('SUBMITED');
+            }
+        },
+        omApproval: function () {
+            var validator = $("#editQuery").data("kendoValidator");
+            if (validator.validate()) {
+            }
+            this.changeOrderStates('APPROVED');
+        },
+        omReject: function () {
+            var validator = $("#editQuery").data("kendoValidator");
+            if (validator.validate()) {
+                this.changeOrderStates('REJECTED');
+            }
+        },
+        wholeDelete: function () {
+            var _this = this;
+            kendo.ui.showConfirmDialog({
+                message: '确定将该订单的全部数据删除吗？'
+            }).then(function (confirm) {
+                if (confirm.button == 'OK') {
+                    var headerId = _this.model.headerId;
+                    //确定是添加还是更新
+                    if (!headerId) {
+                        kendo.ui.showWarningDialog({
+                            message: '已经删除订单!'
+                        }).done(function () {
+                            window.parent.$("#editWin").data("kendoWindow").close();
+                        });
+                        return;
+                    }
+                    $.ajax({
+                        type: 'POST',
+                        url: '/hap/om/order/headers/remove',
+                        dataType: "json",
+                        contentType: "application/json",
+                        data: kendo.stringify([{
+                            headerId: headerId,
+                            __status: "delete"
+                        }]),
+                        success: function (data) {
+                            if (data.success == false) {
+                                kendo.ui.showErrorDialog({
+                                    message: data.message
+                                });
+                            }
+                            else {
+                                kendo.ui.showInfoDialog({
+                                    message: (data.message || '') + '  订单删除成功!'
+                                }).done(function () {
+                                    window.parent.$("#editWin").data("kendoWindow").close();
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        },
+        printOrder: function () {
+            if (!viewModel.model.headerId) {
+                kendo.ui.showWarningDialog({
+                    message: '请先保存订单头信息，再保存订单详细信息!'
+                });
+                return;
+            }
+            var grid = $('#Grid').data('kendoGrid');
+
+            var $pdfGrid = $('#pdfGrid');
+            if ($pdfGrid.size() > 0) {
+                if ($pdfGrid.data('kendoGrid')) {
+                    $pdfGrid.data('kendoGrid').destroy();
+                }
+                $pdfGrid.html('');
+            } else {
+                $pdfGrid = $('<div id="pdfGrid"></div>').appendTo('body');
+            }
+            var pdfGrid = $pdfGrid.kendoGrid($.extend(grid.options, {
+                toolbar: false,
+                selectable: false,
+                sortable: false,
+                editable: false,
+                pdf: {
+                    allPages: true,
+                    avoidLinks: true,
+                    paperSize: "A4",
+                    margin: {top: "8cm", left: "1cm", right: "1cm", bottom: "1cm"},
+                    landscape: true,
+                    repeatHeaders: true,
+                    template: kendo.template($("#page-template").html())(viewModel.model.toJSON()),
+                    scale: 1,
+                },
+            })).data('kendoGrid');
+            window.pdfGrid = pdfGrid;
+            pdfGrid.refresh();
+
+            pdfGrid.saveAsPDF().done(function () {
+                var element = pdfGrid.element;
+                pdfGrid.destroy();
+                element.remove();
+            });
+        },
+        closeWin: function () {
+            window.parent.$("#editWin").data("kendoWindow").close()
+        }
+
+    });
+
+
+</script>
+
+<body>
+
+
+<div id="page-content-box">
+
+    <div id="editQuery" style="padding: 0px;border:none;box-shadow: none;">
+        <form class="form-horizontal" id="inQuery">
+            <div class="panel-body">
+                <div class="header-message">
+                    <div class="row" style="margin-bottom: 10px;">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label class="col-sm-5 control-label"><@spring.message "om.order_Number"/></label>
+                                <div class="col-sm-7">
+                                    <input name="id_order_number" type="text" style="width: 100%" class="k-textbox"
+                                           required
+                                           data-bind="value:model.orderNumber,disabled:headerCanEdit">
+                                    <span data-for="id_order_number" class="k-invalid-msg"></span>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label class="col-sm-5 control-label"><@spring.message "om.company_name"/></label>
+                                <div class="col-sm-7">
+                                    <input type="text" style="width: 100%" id="id_company" name="id_company" required
+                                           data-bind="value:model.companyId,text:model.companyName,disabled:headerCanEdit">
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label class="col-sm-5 control-label"><@spring.message "om.customer_Name"/></label>
+                                <div class="col-sm-7">
+                                    <input type="text" style="width: 100%" id="id_customer" name="id_customer" required
+                                           data-bind="value:model.customerId,text:model.customerName,disabled:headerCanEdit">
+                                    <span data-for="id_customer" class="k-invalid-msg"></span>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label class="col-sm-5 control-label"><@spring.message "om.order_Date"/></label>
+                                <div class="col-sm-7">
+                                    <input style="width: 100%" data-role="datetimepicker" required name="id_order_date"
+                                           data-format="yyyy-MM-dd HH:mm:ss"
+                                           data-min ="2016-1-1 0:0:0"
+                                           data-bind="value:model.orderDate,disabled:headerCanEdit" id="id_order_date">
+                                    <span data-for="id_order_date" class="k-invalid-msg"></span>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label class="col-sm-5 control-label"><@spring.message "om.order_Total_Price"/></label>
+                                <div class="col-sm-7">
+                                    <input name="id_order_total_price" data-role="numerictextbox" style="width: 100%"
+                                           disabled="disabled"
+                                           data-bind="value:model.totalPrice" data-type="Decimal" data-format="{0:N2}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label class="col-sm-5 control-label"><@spring.message "om.order_status"/></label>
+                                <div class="col-sm-7">
+                                    <select data-role="combobox" data-value-primitive="true" required
+                                            disabled="disabled"
+                                            data-text-field="meaning" data-value-field="value"
+                                            placeholder='--- <@spring.message "om.orderstatus"/> ---'
+                                            id="id_order_status"
+                                            name="id_order_status"
+                                            data-bind="source:orderStatusData,value:model.orderStatus"
+                                            style="width: 100%;"></select>
+                                    <span data-for="id_order_status" class="k-invalid-msg"></span>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+                <div class="row " id="toolbar-btn" style="padding-bottom:10px;">
+                    <button type="button" id="oh_save_btn" class="btn btn-primary"
+                            style="float:left;width:70px;margin-right:5px;"
+                            data-bind="click:saveOrderHeader" type="submit"><@spring.message "hap.save" />
+                    </button>
+                    <button type="button" id="oh_submit_btn" class="btn btn-info k-grid-add"
+                            style="float:left;margin-right:5px;"
+                            data-bind="click:submitFunction"><@spring.message "hap.submit"/>
+                    </button>
+                    <button type="button" id="oh_approval_btn" class="btn btn-success" data-bind="click:omApproval"
+                            style="float:left;margin-right:5px;"><@spring.message "om.approval"/>
+                    </button>
+                    <button type="button" id="oh_reject_btn" class="btn btn-warning" data-bind="click:omReject"
+                            style="float:left;margin-right:5px;"><@spring.message "om.reject"/>
+                    </button>
+                    <button type="button" id="oh_wholeDelete_btn" class="btn btn-danger" data-bind="click:wholeDelete"
+                            style="float:left;margin-right:5px;"><@spring.message "om.whole_delete"/>
+                    </button>
+                    <button type="button" id="oh_print_btn" class="btn btn-primary" data-bind="click:printOrder"
+                            style="float:left;margin-right:5px;"><@spring.message "om.print"/>
+                    </button>
+                    <button type="button" id="oh_return_btn" class="btn btn-default" data-bind="click:closeWin"
+                            style="float:left;margin-right:5px;"><@spring.message "om.return"/>
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+    <script>kendo.bind($('#editQuery'), viewModel);</script>
+
+    <div id="tabstrip">
+        <ul>
+            <li id="inboundtab"><@spring.message "om.main"/></li>
+            <li id="outboundtab"><@spring.message "om.other"/></li>
+        </ul>
+
+        <div id="page-content1">
+            <div style="clear:both">
+                <div class="panel" id="Grid"></div>
+            </div>
+        </div>
+
+        <div id="page-content2">
+            <div style="clear:both">
+                <div class="panel" id="otherGrid"></div>
+            </div>
+        </div>
+
+    </div>
+
+
+</div>
+<br>
+<br>
+<script>
+    $("#id_company").kendoLov({
+        code: 'COMPANYS_LOV',
+        contextPath: '${base.contextPath}',
+        locale: '${base.locale}',
+        select: function (e) {
+            $("#id_customer").data('kendoLov').enable(true);
+            viewModel.model.set('companyName', e.item.companyName);
+            viewModel.model.set('customerId', null);
+        },
+        open: function () {
+            this.lovGrid.setOptions({
+                noRecords: {
+                    template: '<@spring.message "om.no_data"/>'
+                },
+            });
+            this.lovWin.element.find('[type=submit]').addClass('btn-sm').html('<i class="fa fa-search" style="margin-right:3px;"></i><@spring.message "hap.query"/>');
+        },
+        change: function (e) {
+            if (!viewModel.model.companyId) {
+                viewModel.model.set('customerId', null);
+                $("#id_customer").data('kendoLov').enable(false);
+            }
+        }
+    });
+
+    $("#editQuery").kendoValidator({
+        messages: {
+            required: function (input) {
+                return '<@spring.message "hap.validation.notnull"/>'.replace('{0}', $(input).closest('.form-group').find('label').text());
+            },
+
+        },
+        invalidMessageType: "tooltip"
+    });
+
+
+    $("#id_customer").kendoLov({
+        //三个必要参数code、contextPath、locale
+        code: 'CUSTOMERS_LOV',
+        contextPath: '${base.contextPath}',
+        locale: '${base.locale}',
+        //其余参数可自行配置
+        query: function (e) {
+            var companyId = viewModel.model.companyId;
+            if (companyId && companyId != '') {
+                e.param.companyId = companyId;
+            }
+        },
+        open: function () {
+            this.lovGrid.setOptions({
+                noRecords: {
+                    template: '<@spring.message "om.no_data"/>'
+                },
+            });
+            this.lovWin.element.find('[type=submit]').addClass('btn-sm').html('<i class="fa fa-search" style="margin-right:3px;"></i><@spring.message "hap.query"/>');
+        },
+        select: function (e) {
+            viewModel.model.set('customerName', e.item.customerName);
+        }
+    }).data('kendoLov').enable(false);
+
+
+    var isedit = '${RequestParameters.isedit!0}' == '1';
+
+    if (isedit) {
+        var a0 = window.parent.$("#editWin").data("editData") || {};
+        viewModel.set('model', a0);
+        if (viewModel.model.companyId) {
+            $("#id_customer").data('kendoLov').enable(true);
+        }
+    } else {
+        viewModel.set('model.orderStatus', 'NEW');
+        viewModel.set('model.orderDate', new Date());
+    }
+
+</script>
+<script>
+
+    var tabstrip = $("#tabstrip").kendoTabStrip({
+            animation: {
+                close: {
+                    duration: 200,
+                    effects: "fadeOut"
+                },
+                open: {
+                    duration: 200,
+                    effects: "fadeIn"
+                }
+            },
+            show: function (e) {
+                function resizeGrid(grid_id) {
+                    var grid = $(grid_id).data('kendoGrid');
+                    if (grid) {
+                        grid.autoResize();
+                        grid.refresh();
+                    }
+                }
+
+                if (e.item.id == "inboundtab") {
+                    resizeGrid("#Grid");
+
+                } else if (e.item.id == "outboundtab") {
+                    resizeGrid("#otherGrid");
+                }
+
+            }
+
+        }
+    ).data("kendoTabStrip");
+    tabstrip.activateTab($("#inboundtab"));
+</script>
+
+
+<script type="text/javascript">
+
+    var BaseUrl = _basePath;
+    dataSource = new kendo.data.DataSource({
+        transport: {
+            read: {
+                url: BaseUrl + "/hap/om/order/lines/queryallbyheaderid",
+                type: "POST",
+                dataType: "json"
+            },
+            update: {
+                url: BaseUrl + "/hap/om/order/lines/submit",
+                type: "POST",
+                contentType: "application/json"
+            },
+            destroy: {
+                url: BaseUrl + "/hap/om/order/lines/remove",
+                type: "POST",
+                contentType: "application/json"
+            },
+            create: {
+                url: BaseUrl + "/hap/om/order/lines/submit",
+                type: "POST",
+                contentType: "application/json"
+            },
+            parameterMap: function (options, type) {
+                if (type !== "read" && options.models) {
+                    $.each(options.models, function (i, r) {
+                        r.unitSellingPrice *= 100.0;
+                    });
+                    var datas = Hap.prepareSubmitParameter(options, type);
+                    return kendo.stringify(datas);
+                } else if (type === "read") {
+                    return Hap.prepareQueryParameter({headerId: viewModel.model.headerId}, options)
+                }
+            }
+        },
+        batch: true,
+        serverPaging: true,
+        serverSorting: true,
+        pageSize: 10,
+        requestStart: function (e) {
+            if (e.type == 'read' && !viewModel.model.headerId) {
+                e.preventDefault();
+            }
+        },
+        schema: {
+            data: 'rows',
+            total: 'total',
+            parse: function (response) {
+                if (response.success) {
+                    var itemObjs = response.message && JSON.parse(response.message);
+                    response.rows && response.rows.forEach(function (item) {
+                        item.unitSellingPrice /= 100.0;
+                        item.subTotalPrice = item.unitSellingPrice * item.orderdQuantity;
+                        if (itemObjs) {
+                            var itemObj = itemObjs.find(function (item2) {
+                                return item2.inventoryItemId == item.inventoryItemId;
+                            });
+                            item.itemDescription = itemObj.itemDescription;
+                            item.itemCode = itemObj.itemCode;
+                        }
+                    });
+                }
+                window.updateTotalPrice(true);
+                return response;
+            },
+            model: {
+                editable: function (col) {
+                    if (viewModel.model.orderStatus == 'SUBMITED' || viewModel.model.orderStatus == 'APPROVED') {
+                        return false;
+                    }
+                    if (col == 'subTotalPrice' || col == 'lineNumber' || col == 'orderQuantityUom' || col == 'itemDescription') {
+                        return false;
+                    }
+                    return true;
+                },
+                id: "lineId",
+                fields: {
+                    lineNumber: {type: "number", editable: false, nullable: false},
+                    inventoryItemId: {
+                        validation: {
+                            required: true,
+                        }
+                    },
+                    description: {
+                        nullable: true,
+                        defaultValue: ''
+                    },
+                    unitSellingPrice: {
+                        validation: {
+                            required: true,
+                        }
+                    },
+                    orderdQuantity: {
+                        validation: {
+                            required: true,
+                        }
+                    },
+                    headerId: {
+                        validation: {
+                            required: true,
+                        }
+                    },
+                    orderQuantityUom: {
+                        editable: false,
+                    },
+                    subTotalPrice: {
+                        type: "number",
+                        defaultValue: 0,
+                        editable: false
+                    }
+
+
+                }
+
+            }
+        },
+
+    });
+
+    window.mainGrid = $("#Grid").kendoGrid({
+        dataSource: dataSource,
+        height: '100%',
+        resizable: true,
+        scrollable: true,
+        navigatable: false,
+        selectable: 'multiple, rowbox',
+        sortable: true,
+        pageable: {
+            pageSizes: [5, 10, 20, 50],
+            refresh: true,
+            buttonCount: 5
+        },
+
+        toolbar: [{
+            name: "mycreate",
+            template: '<button class="btn btn-primary" onclick="viewModel.createFunction()"><@spring.message "hap.new"/></button>'
+        }, {
+            name: "mysave",
+            template: '<button  onclick="viewModel.saveFunction()" class="btn btn-success" ><@spring.message "hap.save"/></button>'
+        },
+            {
+                template: '<button  onclick="deleteData()"  class="btn btn-danger"><@spring.message "hap.delete"/></button>'
+            }],
+        columns: [
+            {
+                field: 'lineNumber',
+                title: '<@spring.message "om.line_number"/>',
+                attributes: {
+                    class: 'lineNumber'
+                },
+                width: 40
+            },
+            {
+                field: 'inventoryItemId',
+                template: function (dataItem) {
+                    return dataItem['itemCode'] || dataItem['inventoryItemId'] || '';
+                },
+                editor: function (container, options) {
+
+                    var message = '<@spring.message "hap.validation.notnull"/>'.replace('{0}', $(container).closest('#Grid').find('[data-field=' + options.field + ']').text());
+                    $('<input required validationMessage="' + message + '" />')
+                        .attr('name', options.field)
+                        .appendTo(container)
+                        .kendoLov({
+                            //三个必要参数code、contextPath、locale
+                            code: 'ITEMS_LOV',
+                            contextPath: '${base.contextPath}',
+                            model: options.model,
+                            textField: 'itemCode',
+                            locale: '${base.locale}',
+                            select: function (e) {
+                                options.model.set('inventoryItemId', e.item.inventoryItemId);
+                                options.model.set('itemCode', e.item.itemCode);
+                                options.model.set('itemDescription', e.item.itemDescription);
+                                options.model.itemDescription = e.item.itemDescription;
+                                options.model['orderQuantityUom'] || (options.model.orderQuantityUom = e.item.itemUom);
+                                $("#Grid").data('kendoGrid').refresh();
+                            },
+                            query: function (e) {
+                                e.param.orderFlag = 'Y';
+                            },
+                            open: function () {
+                                this.lovGrid.setOptions({
+                                    noRecords: {
+                                        template: '<@spring.message "om.no_data"/>'
+                                    },
+                                });
+                                this.lovWin.element.find('[type=submit]').addClass('btn-sm').html('<i class="fa fa-search" style="margin-right:3px;"></i><@spring.message "hap.query"/>');
+                            },
+                            change: function (e) {
+                                if (!viewModel.model.inventoryItemId) {
+                                    options.model.set('itemDescription', '');
+                                    options.model.set('itemCode', '');
+                                }
+                            }
+                        });
+
+                }
+                ,
+                title: '<@spring.message "om.inventory_code"/>',
+                width: 120
+            },
+            {
+                field: "itemDescription",
+                title: '<@spring.message "om.inventory_desc"/>',
+                width: 140
+            },
+            {
+                field: "orderQuantityUom",
+                title: '<@spring.message "om.inventory_uom"/>',
+                width: 60
+            },
+            {
+                field: "orderdQuantity",
+                editor: function (container, options) {
+                    var _this = mainGrid;
+                    var c = function (e) {
+                        options.model.orderdQuantity = +e.sender.value() || 0;
+                        options.model.subTotalPrice = options.model.orderdQuantity * options.model.unitSellingPrice
+                        _this.element.find('tr[data-uid=' + options.model.uid + ']').find('.subTotalPrice').text(options.model.subTotalPrice);
+                        options.model.dirty = true;
+                        updateTotalPrice();
+                    };
+                    var message = '<@spring.message "hap.validation.notnull"/>'.replace('{0}', $(container).closest('#Grid').find('[data-field=' + options.field + ']').text());
+
+                    return $('<input required validationMessage="' + message + '" type="number"  />').attr('name', options.field).appendTo(container)
+                        .kendoNumericTextBox({
+                            change: c,
+                            spin: c,
+                            min: 0,
+                        });
+                },
+                title: '<@spring.message "om.quantity"/>',
+                type: "Decimal",
+                width: 70
+            },
+            {
+                field: "unitSellingPrice", //
+                title: '<@spring.message "om.unit_selling_price"/>',
+                type: "Decimal", format: "{0:N2}",
+                editor: function (container, options) {
+                    var _this = mainGrid;
+                    var c = function (e) {
+                        options.model.unitSellingPrice = e.sender.value() || 0;
+                        options.model.subTotalPrice = options.model.orderdQuantity * options.model.unitSellingPrice;
+                        _this.element.find('tr[data-uid=' + options.model.uid + ']').find('.subTotalPrice').text(options.model.subTotalPrice);
+                        options.model.dirty = true;
+                        updateTotalPrice();
+
+                    };
+
+                    var message = '<@spring.message "hap.validation.notnull"/>'.replace('{0}', $(container).closest('#Grid').find('[data-field=' + options.field + ']').text());
+
+                    return $('<input required validationMessage="' + message + '"   type="number" />').attr('name', options.field).appendTo(container)
+                        .kendoNumericTextBox({
+                            change: c,
+                            spin: c,
+                            min: 0,
+                        });
+                },
+                width: 70
+            },
+            {
+                field: "subTotalPrice",
+                attributes: {
+                    class: 'subTotalPrice'
+                },
+                sortable: {
+                    compare: function (a, b) {
+                        console.log(a, b);
+                        return a['subTotalPrice'] - b['subTotalPrice'];
+                    }
+                },
+                type: "Decimal", format: "{0:N2}",
+                title: '<@spring.message "om.amount"/>',
+                width: 80
+            },
+            {
+                field: "description",
+                title: '<@spring.message "om.comment"/>',
+                width: 100
+            },
+        ],
+        editable: true,
+        edit: function (e) {
+
+            if (e.model.isNew() && !e.model.headerId && viewModel.model.headerId) {
+                e.model.headerId = viewModel.model.headerId;
+                e.model.companyId = viewModel.model.companyId;
+            }
+            if (e.model.isNew() && !e.model.lineNumber) {
+                // Disable the editor of the "id" column when editing data items
+                var _grid = this;
+                $.ajax({
+                    type: 'GET',
+                    url: '/hap/om/order/lines/getnewlinenumber',
+                    dataType: "json",
+                    contentType: "application/json",
+                    data: {
+                        headerId: viewModel.model.headerId,
+                    },
+                    success: function (result) {
+                        if (result.success && result.message >= 1) {
+                            var remoteMaxNumber = +result.message;
+                            var rowNumbers = [];
+                            $("#Grid").data('kendoGrid').items().toArray().forEach(function (item) {
+                                var t = _grid.dataItem(item).lineNumber;
+                                if (t != undefined && t !== null) {
+                                    rowNumbers.push(+t);
+                                }
+                            });
+                            var maxLineNumber = Math.max.apply(null, rowNumbers);
+                            var localNewLineNumber = (maxLineNumber < 1 ? 1 : maxLineNumber + 1);
+                            var newLineNumber = localNewLineNumber > remoteMaxNumber ? localNewLineNumber : remoteMaxNumber;
+                            e.model.lineNumber = newLineNumber;
+                            $('#Grid,#otherGrid').find('tr[data-uid=' + e.model.uid + ']').find('.lineNumber').text(newLineNumber);
+                        }
+                    }
+                });
+
+            }
+        },
+
+    }).data('kendoGrid');
+
+
+    $('#otherGrid').kendoGrid({
+        dataSource: dataSource,
+        height: '100%',
+        resizable: true,
+        scrollable: true,
+        navigatable: false,
+        selectable: 'multiple, rowbox',
+        sortable: true,
+        pageable: {
+            pageSizes: [5, 10, 20, 50],
+            refresh: true,
+            buttonCount: 5
+        },
+        toolbar: [{
+            name: "mycreate",
+            template: '<button class="btn btn-primary" onclick="viewModel.createFunction(true)"><@spring.message "hap.new"/></button>'
+        }, {
+            name: "mysave",
+            template: '<button  onclick="viewModel.saveFunction(true)" class="btn btn-success" ><@spring.message "hap.save"/></button>'
+        },
+            {
+                template: '<button  onclick="deleteDataOther()"  class="btn btn-danger"><@spring.message "hap.delete"/></button>'
+            }],
+        columns: [
+            {
+                field: 'lineNumber',
+                attributes: {
+                    class: 'lineNumber'
+                },
+                title: '<@spring.message "om.line_number"/>',
+                width: 40
+            },
+            {
+                field: 'addition1',
+                title: '<@spring.message "om.addition"/>1',
+                width: 80
+            },
+            {
+                field: 'addition2',
+                title: '<@spring.message "om.addition"/>2',
+                width: 80
+            },
+            {
+                field: 'addition3',
+                title: '<@spring.message "om.addition"/>3',
+                width: 80
+            },
+            {
+                field: 'addition4',
+                title: '<@spring.message "om.addition"/>4',
+                width: 80
+            },
+        ],
+        editable: true
+    });
+
+
+    function deleteData() {
+        Hap.deleteGridSelection({
+            grid: $('#Grid')
+        });
+    }
+
+    function deleteDataOther() {
+        Hap.deleteGridSelection({
+            grid: $('#otherGrid')
+        });
+    }
+
+    Hap.autoResizeGrid("#Grid");
+
+
+    function initPrivilege() {
+        var saveBtn = $('#oh_save_btn'),
+            submintBtn = $('#oh_submit_btn'),
+            approvalBtn = $('#oh_approval_btn'),
+            rejectBtn = $('#oh_reject_btn'),
+            wholeDeleteBtn = $('#oh_wholeDelete_btn'),
+            printBtn = $('#oh_print_btn');
+        var orderStatus = viewModel.model.orderStatus;
+        if (orderSubmitCtl == 'Y') {
+            submintBtn.attr('disabled', false);
+        } else {
+            submintBtn.attr('disabled', true);
+        }
+
+        if (orderApproveCtl == 'Y') {
+            approvalBtn.attr('disabled', false);
+        } else {
+            approvalBtn.attr('disabled', true);
+        }
+
+
+        if (orderStatus == 'SUBMITED' || orderStatus == 'APPROVED') {
+            $('#Grid,#otherGrid').find('.k-grid-toolbar>button.btn').attr('disabled', true);
+            setOrderHeaderEditable(false);
+            saveBtn.attr('disabled', true);
+            submintBtn.attr('disabled', true);
+
+            if (orderStatus == 'SUBMITED') {
+
+                if (orderApproveCtl == 'Y') {
+                    approvalBtn.attr('disabled', false);
+                    rejectBtn.attr('disabled', false);
+                } else if (orderApproveCtl == 'N') {
+                    approvalBtn.attr('disabled', true);
+                    rejectBtn.attr('disabled', true);
+                } else {
+                    approvalBtn.attr('disabled', true);
+                    rejectBtn.attr('disabled', true);
+                }
+
+            }
+            if (orderStatus == 'APPROVED') {
+                approvalBtn.attr('disabled', true);
+
+                rejectBtn.attr('disabled', true);
+            }
+            wholeDeleteBtn.attr('disabled', true);
+        } else if (orderStatus == 'NEW' || orderStatus == 'REJECTED') {
+            $('#Grid,#otherGrid').find('.k-grid-toolbar>button.btn').attr('disabled', false);
+            setOrderHeaderEditable(true);
+            saveBtn.attr('disabled', false);
+            if (orderSubmitCtl == 'Y') {
+                submintBtn.attr('disabled', false);
+            } else if (orderSubmitCtl == 'N') {
+                submintBtn.attr('disabled', true);
+            } else {
+                submintBtn.attr('disabled', false);
+            }
+            rejectBtn.attr('disabled', true);
+            approvalBtn.attr('disabled', true);
+            wholeDeleteBtn.attr('disabled', false);
+
+            if (orderStatus == 'NEW') {
+                if (!isedit) {
+                    submintBtn.attr('disabled', true);
+                    wholeDeleteBtn.attr('disabled', true);
+                    printBtn.attr('disabled', true);
+                }else{
+                    printBtn.attr('disabled', false);
+                    submintBtn.attr('disabled', false);
+                }
+            } else {
+                printBtn.attr('disabled', false);
+            }
+        }
+
+
+    }
+
+    initPrivilege();
+
+
+    function setOrderHeaderEditable(canEdit) {
+        viewModel.set('headerCanEdit', !canEdit);
+    }
+
+
+    window.updateTotalPrice = (function ($, window, dataSource, viewModel) {
+        var oldTotalPrice = 0;
+        var oldLocalTotalPrice = undefined;
+        var newTotalPrice = 0;
+
+        function getTotalFromDataSource(dataSource) {
+            return dataSource.data().reduce(function (previousValue, currentValue) {
+                return previousValue + (currentValue.subTotalPrice || 0);
+            }, 0);
+        }
+
+        function initTotalPriceWithAjax() {
+            $.ajax({
+                type: 'GET',
+                url: '/hap/om/order/headers/gettotalprice',
+                dataType: "json",
+                contentType: "application/json",
+                data: {
+                    headerId: viewModel.model.headerId,
+                },
+                success: function (result) {
+                    if (result.success && result.message >= 0) {
+                        oldTotalPrice = +(result.message / 100);
+                        oldLocalTotalPrice = getTotalFromDataSource(dataSource);
+                        newTotalPrice = oldTotalPrice;
+                        viewModel.model.set('totalPrice', newTotalPrice);
+                    }
+                }
+            });
+        }
+
+
+        return function (isInit) {
+            if (isInit) {
+                initTotalPriceWithAjax();
+                return;
+            }
+            if (dataSource.hasChanges()) {
+                var currentLocalTotalPrice = getTotalFromDataSource(dataSource);
+                if (oldLocalTotalPrice!==undefined) {
+                    newTotalPrice = oldTotalPrice + (currentLocalTotalPrice - oldLocalTotalPrice);
+                } else {
+                    newTotalPrice = oldTotalPrice;
+                }
+                oldLocalTotalPrice = currentLocalTotalPrice;
+                viewModel.model.set('totalPrice', newTotalPrice);
+                oldTotalPrice = newTotalPrice;
+            } else {
+                initTotalPriceWithAjax();
+            }
+
+        }
+    })($, window, dataSource, viewModel);
+
+
+</script>
+</body>
+</html>

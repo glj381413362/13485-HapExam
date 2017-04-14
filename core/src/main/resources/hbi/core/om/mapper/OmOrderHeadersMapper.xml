@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hbi.core.om.mapper.OmOrderHeadersMapper">
+    <resultMap id="BaseResultMap" type="hbi.core.om.dto.OmOrderHeaders">
+        <result column="HEADER_ID" property="headerId" jdbcType="DECIMAL"/>
+        <result column="ORDER_NUMBER" property="orderNumber" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="ORDER_DATE" property="orderDate" jdbcType="TIMESTAMP"/>
+        <result column="ORDER_STATUS" property="orderStatus" jdbcType="VARCHAR"/>
+        <result column="CUSTOMER_ID" property="customerId" jdbcType="DECIMAL"/>
+        <result column="total_Price" property="totalPrice" jdbcType="VARCHAR"/>
+        <result column="company_Name" property="companyName" jdbcType="VARCHAR"/>
+        <result column="customer_Name" property="customerName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+
+    <select id="queryAll" resultMap="BaseResultMap" parameterType="hbi.core.om.dto.OmOrderHeaders">
+        SELECT
+        oh.header_Id,
+        oh.order_Number,
+        oh.CUSTOMER_ID,
+        oh.company_Id,
+        oh.order_Date,
+        oh.order_Status,
+        (
+        SELECT customer.CUSTOMER_NAME
+        FROM
+        hap_ar_customers customer
+        WHERE
+        customer.CUSTOMER_ID = oh.CUSTOMER_ID
+        ) CUSTOMER_NAME,
+        (
+        SELECT companys.COMPANY_NAME
+        FROM
+        hap_org_companys companys
+        WHERE
+        companys.COMPANY_ID = oh.COMPANY_ID
+        ) COMPANY_NAME,
+        ifnull((select sum(ol.ORDERD_QUANTITY*ol.UNIT_SELLING_PRICE)
+        from hap_om_order_lines ol
+        where ol.HEADER_ID = oh.HEADER_ID),0) total_price
+        FROM hap_om_order_headers oh
+        <where>
+            <if test="headerId !=null ">
+                and oh.header_Id = #{headerId}
+            </if>
+            <if test="orderNumber!=null">
+                and oh.order_number = #{orderNumber}
+            </if>
+            <if test="companyId!=null">
+                and oh.company_Id  = #{companyId}
+            </if>
+            <if test="customerId!=null">
+                and oh.customer_Id  = #{customerId}
+            </if>
+            <if test="orderStatus!=null">
+                and oh.order_status  =  #{orderStatus}
+            </if>
+            <if test="inventoryItemId!=null">
+                and oh.header_Id in(
+                  SELECT DISTINCT header_id from hap_om_order_lines where inventory_Item_Id = #{inventoryItemId}
+                )
+--                 and exists (select 1 from hap_om_order_lines l where l.header_id = oh.header_id
+--                   and l.inventory_Item_Id = #{inventoryItemId})
+            </if>
+            <!--<if test="name!=null">-->
+            <!--and e1.name LIKE concat('%', concat(#{name,jdbcType=VARCHAR}, '%'))-->
+            <!--</if>-->
+        </where>
+    </select>
+
+
+    <select id="getTotalPrice" resultType="long" parameterType="long" >
+
+        <choose>
+            <when test="headerId!=null and headerId>0">
+                SELECT
+                ifnull(sum(ol.ORDERD_QUANTITY*ol.UNIT_SELLING_PRICE),0)  total_price
+                from hap_om_order_lines ol
+                where ol.HEADER_ID = #{headerId}
+            </when>
+            <otherwise>
+                SELECT -1;
+            </otherwise>
+        </choose>
+
+    </select>
+</mapper>

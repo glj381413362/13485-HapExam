@@ -1,0 +1,25 @@
+/* xjlFont */
+@font-face {
+    font-family: "xjlFont";
+    src: url("./xjlfont.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "xjlFont";
+    font-weight: bold;
+    font-style: italic;
+    src: url("./xjlfont.ttf") format("truetype");
+}
+@font-face {
+    font-family: "xjlFont";
+    font-weight: bold;
+    src: url("./xjlfont.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "xjlFont";
+    font-style: italic;
+    src: url("./xjlfont.ttf") format("truetype");
+}
+
+/* sourcehansan */

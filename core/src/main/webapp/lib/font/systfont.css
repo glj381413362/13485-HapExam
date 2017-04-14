@@ -1,0 +1,23 @@
+/* systFont */
+@font-face {
+    font-family: "systFont";
+    src: url("./SourceHanSerifCN-Regular.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "systFont";
+    font-weight: bold;
+    font-style: italic;
+    src: url("./SourceHanSerifCN-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "systFont";
+    font-weight: bold;
+    src: url("./SourceHanSerifCN-Regular.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "systFont";
+    font-style: italic;
+    src: url("./SourceHanSerifCN-Regular.ttf") format("truetype");
+}
