@@ -16,19 +16,19 @@
     <bean id="coreApplicationListener" class="com.hand.hap.core.ApplicationListenerBean"/>
 
     <!-- middleware datasource  -->
-    <!-- jndi dataSource-->
-    <!--<bean id="dataSource" class="com.hand.hap.core.JndiObjectFactoryBean">-->
-        <!--<property name="jndiName" value="${db.jndiName}"/>-->
-    <!--</bean>-->
-
-    <!-- builtin datasource -->
-    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
-        <property name="driverClassName"
-        value="${db.driver}"/>
-        <property name="url" value="${db.url}"/>
-        <property name="username" value="${db.username}"/>
-        <property name="password" value="${db.password}"/>
+     <!--jndi dataSource-->
+    <bean id="dataSource" class="com.hand.hap.core.JndiObjectFactoryBean">
+        <property name="jndiName" value="${db.jndiName}"/>
     </bean>
+
+    <!--&lt;!&ndash; builtin datasource &ndash;&gt;-->
+    <!--<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">-->
+        <!--<property name="driverClassName"-->
+        <!--value="${db.driver}"/>-->
+        <!--<property name="url" value="${db.url}"/>-->
+        <!--<property name="username" value="${db.username}"/>-->
+        <!--<property name="password" value="${db.password}"/>-->
+    <!--</bean>-->
 
     <bean id="languageProvider" class="com.hand.hap.core.impl.LanguageProviderImpl"/>
 
