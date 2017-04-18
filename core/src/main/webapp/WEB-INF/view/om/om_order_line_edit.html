@@ -238,7 +238,7 @@
 
                 $.ajax({
                     type: 'POST',
-                    url: '/hap/om/order/headers/submit',
+                    url: '${base.contextPath}/hap/om/order/headers/submit',
                     dataType: "json",
                     contentType: "application/json",
                     data: kendo.stringify([saveData]),
@@ -317,7 +317,7 @@
                     }
                     $.ajax({
                         type: 'POST',
-                        url: '/hap/om/order/headers/remove',
+                        url: '${base.contextPath}/hap/om/order/headers/remove',
                         dataType: "json",
                         contentType: "application/json",
                         data: kendo.stringify([{
@@ -950,7 +950,7 @@
                 var _grid = this;
                 $.ajax({
                     type: 'GET',
-                    url: '/hap/om/order/lines/getnewlinenumber',
+                    url: '${base.contextPath}/hap/om/order/lines/getnewlinenumber',
                     dataType: "json",
                     contentType: "application/json",
                     data: {
@@ -1154,7 +1154,7 @@
         function initTotalPriceWithAjax() {
             $.ajax({
                 type: 'GET',
-                url: '/hap/om/order/headers/gettotalprice',
+                url: '${base.contextPath}/hap/om/order/headers/gettotalprice',
                 dataType: "json",
                 contentType: "application/json",
                 data: {
